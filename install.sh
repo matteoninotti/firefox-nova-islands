@@ -22,19 +22,28 @@ set -euo pipefail
 REPO_RAW="https://raw.githubusercontent.com/matteoninotti/firefox-nova-islands/main"
 CSS_NAME="nova-islands.css"
 IMPORT_LINE='@import url("nova-islands.css");'
+IMPORT_RE='^@import url\("nova-islands\.css"\);'$'\r''?$'
 PREF_LINE='user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true); // firefox-nova-islands'
 PREF_MARK='// firefox-nova-islands'
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  install.sh                     pick a profile interactively and install
+  install.sh --profile <dir>     install into a specific profile folder
+  install.sh --uninstall [...]   remove it again
+USAGE
+}
 
 die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 info() { printf '%s\n' "$*"; }
 
 # Read answers from the terminal even when the script is piped (curl | bash).
 ask() {
-  local prompt=$1 reply
-  if [[ -r /dev/tty ]]; then
-    read -r -p "$prompt" reply </dev/tty
-  else
-    die "no terminal available for the prompt; pass --profile <dir>"
+  local prompt=$1 reply=""
+  if ! { read -r -p "$prompt" reply </dev/tty; } 2>/dev/null; then
+    printf '\n' >&2
+    die "no answer read from the terminal; pass --profile <dir>"
   fi
   printf '%s' "$reply"
 }
@@ -45,7 +54,7 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --profile) [[ $# -ge 2 ]] || die "--profile needs a folder"; PROFILE=$2; shift 2 ;;
     --uninstall) UNINSTALL=1; shift ;;
-    -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) usage; exit 0 ;;
     *) die "unknown option: $1" ;;
   esac
 done
@@ -83,9 +92,9 @@ list_profiles() {
       }
       path = ""; relative = "1"; def = ""
     }
+    { sub(/\r$/, "") }
     /^\[/ { flush(); section = substr($0, 2, length($0) - 2); next }
     {
-      sub(/\r$/, "")
       eq = index($0, "="); if (!eq) next
       key = substr($0, 1, eq - 1); val = substr($0, eq + 1)
       if (section ~ /^Profile/) {
@@ -126,7 +135,7 @@ choose_profile() {
   [[ ${#paths[@]} -gt 0 ]] || die "no Firefox profiles found; pass --profile <dir>"
   [[ -n $default_index ]] || default_index=1
 
-  choice=$(ask "Profile number [$default_index]: ")
+  choice=$(ask "Profile number [$default_index]: ") || exit 1
   choice=${choice:-$default_index}
   [[ $choice =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#paths[@]} )) || die "invalid choice: $choice"
   printf '%s' "${paths[choice-1]}"
@@ -134,7 +143,7 @@ choose_profile() {
 
 if [[ -z $PROFILE ]]; then
   info "Firefox profiles found:"
-  PROFILE=$(choose_profile)
+  PROFILE=$(choose_profile) || exit 1
 fi
 [[ -d $PROFILE ]] || die "profile folder not found: $PROFILE"
 [[ -f $PROFILE/prefs.js || -f $PROFILE/times.json ]] || die "does not look like a Firefox profile: $PROFILE"
@@ -155,7 +164,8 @@ backup() {
   info "Backup: $dir"
 }
 
-# Remove every line equal to $1 (or containing $1 when $2 = contains) from file $3.
+# Remove every line matching regex $1 (mode "regex") or containing string $1
+# (mode "contains") from file $3.
 remove_lines() {
   local needle=$1 mode=$2 file=$3 tmp
   [[ -f $file ]] || return 0
@@ -163,7 +173,7 @@ remove_lines() {
   if [[ $mode == contains ]]; then
     grep -vF -- "$needle" "$file" >"$tmp" || true
   else
-    grep -vxF -- "$needle" "$file" >"$tmp" || true
+    grep -vE -- "$needle" "$file" >"$tmp" || true
   fi
   cat "$tmp" >"$file"
   rm -f "$tmp"
@@ -174,7 +184,7 @@ remove_lines() {
 if (( UNINSTALL )); then
   backup
   rm -f "$CHROME/$CSS_NAME"
-  remove_lines "$IMPORT_LINE" exact "$USERCHROME"
+  remove_lines "$IMPORT_RE" regex "$USERCHROME"
   remove_lines "$PREF_MARK" contains "$USERJS"
   info "Removed firefox-nova-islands from $PROFILE"
   info "The stylesheet pref stays enabled in prefs.js; reset it in about:config if nothing else needs it."
@@ -200,7 +210,7 @@ else
 fi
 
 # @import must come before any other rule, so put it on the first line.
-if [[ -f $USERCHROME ]] && grep -qxF -- "$IMPORT_LINE" "$USERCHROME"; then
+if [[ -f $USERCHROME ]] && grep -qE -- "$IMPORT_RE" "$USERCHROME"; then
   :
 else
   tmp=$(mktemp "$CHROME/userChrome.XXXXXX")
