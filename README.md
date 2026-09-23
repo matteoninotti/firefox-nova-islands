@@ -4,6 +4,13 @@ Bring back the **floating islands** look of Firefox's Nova redesign: gaps betwee
 
 Firefox 156 removed those gaps ([bug 2062351](https://bugzilla.mozilla.org/show_bug.cgi?id=2062351), [bug 2063294](https://bugzilla.mozilla.org/show_bug.cgi?id=2063294)), and no setting brings them back. This repo re-applies the CSS rules those patches deleted. They're copied from the Firefox 155.0.1 source code and loaded through `userChrome.css`.
 
+## Before / after
+
+| | Firefox 156 default | With firefox-nova-islands |
+|---|---|---|
+| Dark | ![Firefox 156 default, dark theme](screenshots/default-dark.png) | ![With firefox-nova-islands, dark theme](screenshots/islands-dark.png) |
+| Light | ![Firefox 156 default, light theme](screenshots/default-light.png) | ![With firefox-nova-islands, light theme](screenshots/islands-light.png) |
+
 ## What you get
 
 It behaves the same as Firefox 155:
