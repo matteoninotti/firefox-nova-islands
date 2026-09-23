@@ -184,7 +184,11 @@ fi
 
 # ---- Install --------------------------------------------------------------
 
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)
+# Use the CSS next to the script when run from a checkout; download it when piped (curl | bash).
+SCRIPT_DIR=""
+if [[ -n ${BASH_SOURCE[0]:-} && -f ${BASH_SOURCE[0]} ]]; then
+  SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+fi
 backup
 mkdir -p "$CHROME"
 
