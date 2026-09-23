@@ -106,13 +106,26 @@ user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 
 ## Compatibility
 
+How it was tested: the same 15 window states were measured in the real Firefox 155.0.1 (Nova on, no mod) and in newer versions with this mod. The measurements were margins, padding, borders, corner radii, gaps and element positions, and the states were:
+
+- normal, maximized, fullscreen
+- compact, and compact maximized
+- split view, and split view in compact
+- sidebar panel open, and panel open maximized
+- sidebar on the right, with and without a panel
+- expand-on-hover, and expand-on-hover in compact
+- DevTools docked right
+- customize mode
+
 | Firefox | Status |
 |---|---|
-| 156.0 on macOS 15 | An earlier, macOS-only version of this CSS was tested with vertical tabs, sidebar, split view and DevTools. This version adds compact mode, expand-on-hover and 157 support, and hasn't been checked in the browser yet. |
-| 157 (beta 4) | Checked against the source code. The selectors and the corner-size variable it relies on are handled. |
+| 156.0.1, macOS 15 | Tested: **573 of 576** values match Firefox 155. The only differences are in compact + expand-on-hover, and there 155 behaves the same way on a fresh start (see below). |
+| 157.0 beta 4, macOS 15 | Tested: **566 of 576** values match. The differences come from Firefox 157 itself, not from this mod: the expand-on-hover launcher is 1px wider (the gap next to it is unchanged), and the unselected split-view panel's border is drawn as an outline that looks the same. |
 | Windows, Linux | Not tested. The rules are the same as Firefox 155's, and corner sizes come from Firefox itself. Please open an issue if something looks off. |
-| `install.sh` | Tested on macOS (bash 3.2) with test profiles: install, re-install, uninstall, profile picker. |
+| `install.sh` | Tested on macOS (bash 3.2): install, re-install, uninstall, profile picker, files with Windows line endings, piped (`curl \| bash`) install. |
 | `install.ps1` | Not tested on Windows. Please report problems. |
+
+Known quirk, same as Firefox 155: with compact density and the expand-on-hover sidebar, the collapsed launcher overlaps the page by 2px.
 
 Firefox changes its interface code often, so a future release can break this. If it does, please open an issue.
 
