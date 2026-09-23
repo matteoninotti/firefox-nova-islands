@@ -26,12 +26,12 @@ Firefox 156 removed those gaps ([bug 2062351](https://bugzilla.mozilla.org/show_
 
 It behaves the same as Firefox 155:
 
-| Window state | Result |
-|---|---|
-| Normal window | 4px gap around the window edge and between the toolbar, sidebar and page. All blocks are rounded and bordered. |
-| Maximized | No gap at the window edge. The gaps between the toolbar, sidebar and page stay. |
-| Fullscreen | No outer gap and no rounding. The gap between the sidebar and the page stays. |
-| Compact density | 2px gaps. Only the inner corner is rounded. |
+| Window state    | Result                                                                                                         |
+| --------------- | -------------------------------------------------------------------------------------------------------------- |
+| Normal window   | 4px gap around the window edge and between the toolbar, sidebar and page. All blocks are rounded and bordered. |
+| Maximized       | No gap at the window edge. The gaps between the toolbar, sidebar and page stay.                                |
+| Fullscreen      | No outer gap and no rounding. The gap between the sidebar and the page stays.                                  |
+| Compact density | 2px gaps. Only the inner corner is rounded.                                                                    |
 
 It also covers split view, docked DevTools, the expand-on-hover sidebar, sidebar on the right, customize mode, and themes.
 
@@ -90,6 +90,7 @@ To pick a profile yourself, run `./install.sh --profile "<profile folder>"` or `
 ```sh
 ./install.sh --uninstall
 ```
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1 -Uninstall
 ```
@@ -106,24 +107,7 @@ user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 
 ## Compatibility
 
-How it was tested: the same 15 window states were measured in the real Firefox 155.0.1 (Nova on, no mod) and in newer versions with this mod. The measurements were margins, padding, borders, corner radii, gaps and element positions, and the states were:
-
-- normal, maximized, fullscreen
-- compact, and compact maximized
-- split view, and split view in compact
-- sidebar panel open, and panel open maximized
-- sidebar on the right, with and without a panel
-- expand-on-hover, and expand-on-hover in compact
-- DevTools docked right
-- customize mode
-
-| Firefox | Status |
-|---|---|
-| 156.0.1, macOS 15 | Tested: **573 of 576** values match Firefox 155. The only differences are in compact + expand-on-hover, and they go away when 155 starts in compact mode instead of being switched to it while running. |
-| 157.0 beta 4, macOS 15 | Tested: **566 of 576** values match. The differences come from Firefox 157 itself, not from this mod: the expand-on-hover launcher is 1px wider (the gap next to it is unchanged), and the unselected split-view panel's border is drawn as an outline that looks the same. |
-| Windows, Linux | Not tested. The rules are the same as Firefox 155's, and corner sizes come from Firefox itself. Please open an issue if something looks off. |
-| `install.sh` | Tested on macOS (bash 3.2): install, re-install, uninstall, profile picker, files with Windows line endings, piped (`curl \| bash`) install. |
-| `install.ps1` | Not tested on Windows. Please report problems. |
+Tested on MacOS Sequoia and Windows 11
 
 Firefox changes its interface code often, so a future release can break this. If it does, please open an issue.
 
