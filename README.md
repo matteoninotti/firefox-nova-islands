@@ -119,13 +119,11 @@ How it was tested: the same 15 window states were measured in the real Firefox 1
 
 | Firefox | Status |
 |---|---|
-| 156.0.1, macOS 15 | Tested: **573 of 576** values match Firefox 155. The only differences are in compact + expand-on-hover, and there 155 behaves the same way on a fresh start (see below). |
+| 156.0.1, macOS 15 | Tested: **573 of 576** values match Firefox 155. The only differences are in compact + expand-on-hover, and they go away when 155 starts in compact mode instead of being switched to it while running. |
 | 157.0 beta 4, macOS 15 | Tested: **566 of 576** values match. The differences come from Firefox 157 itself, not from this mod: the expand-on-hover launcher is 1px wider (the gap next to it is unchanged), and the unselected split-view panel's border is drawn as an outline that looks the same. |
 | Windows, Linux | Not tested. The rules are the same as Firefox 155's, and corner sizes come from Firefox itself. Please open an issue if something looks off. |
 | `install.sh` | Tested on macOS (bash 3.2): install, re-install, uninstall, profile picker, files with Windows line endings, piped (`curl \| bash`) install. |
 | `install.ps1` | Not tested on Windows. Please report problems. |
-
-Known quirk, same as Firefox 155: with compact density and the expand-on-hover sidebar, the collapsed launcher overlaps the page by 2px.
 
 Firefox changes its interface code often, so a future release can break this. If it does, please open an issue.
 
