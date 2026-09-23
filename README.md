@@ -6,10 +6,21 @@ Firefox 156 removed those gaps ([bug 2062351](https://bugzilla.mozilla.org/show_
 
 ## Before / after
 
-| | Firefox 156 default | With firefox-nova-islands |
-|---|---|---|
-| Dark | ![Firefox 156 default, dark theme](screenshots/default-dark.png) | ![With firefox-nova-islands, dark theme](screenshots/islands-dark.png) |
-| Light | ![Firefox 156 default, light theme](screenshots/default-light.png) | ![With firefox-nova-islands, light theme](screenshots/islands-light.png) |
+**Firefox 156 default (dark)**
+
+![Firefox 156 default, dark theme](screenshots/default-dark.png)
+
+**With firefox-nova-islands (dark)**
+
+![With firefox-nova-islands, dark theme](screenshots/islands-dark.png)
+
+**Firefox 156 default (light)**
+
+![Firefox 156 default, light theme](screenshots/default-light.png)
+
+**With firefox-nova-islands (light)**
+
+![With firefox-nova-islands, light theme](screenshots/islands-light.png)
 
 ## What you get
 
