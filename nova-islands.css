@@ -1,0 +1,566 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* ==========================================================================
+ * firefox-nova-islands
+ * https://github.com/matteoninotti/firefox-nova-islands
+ *
+ * Restores the "floating islands" look of Firefox's Nova redesign (gaps
+ * between the toolbar, sidebar and page, with rounded bordered blocks),
+ * which Firefox 156 removed:
+ *   - Bug 2062351  Remove outer window gaps of floating chrome for Nova
+ *   - Bug 2063294  Remove inner window gaps of floating chrome for Nova
+ *
+ * The rules below are the ones those patches deleted, copied from the
+ * FIREFOX_155_0_1_RELEASE sources (browser-shared.css, content-area.css,
+ * sidebar.css, customizeMode.css), with !important added and a few rules
+ * that later versions changed underneath them re-applied.
+ *
+ * Behaviour (same as Firefox 155):
+ *   - normal window:  gap around the window edge and between blocks
+ *   - maximized:      no outer gap; gaps between blocks kept
+ *   - fullscreen:     no outer gap, no rounding; sidebar/content gap kept
+ *   - compact density: 2px gaps, only the inner corner rounded
+ *
+ * Everything is inside -moz-pref("browser.nova.enabled"): it does nothing
+ * unless Nova is enabled.
+ *
+ * userChrome styles are user-origin; without !important they lose to the
+ * browser's own rules, hence !important everywhere.
+ * ========================================================================== */
+
+@media -moz-pref("browser.nova.enabled") {
+
+  /* ---- Tokens ---------------------------------------------------------- */
+
+  :root {
+    /* Firefox 155-156 call the radius --chrome-block-radius, 157+ calls it
+     * --window-border-radius; both are set per platform by Firefox itself. */
+    --nova-islands-gap: 4px;
+    --nova-islands-radius: var(--chrome-block-radius, var(--window-border-radius, 10px));
+    --nova-islands-separator: var(--chrome-content-separator-color);
+
+    &[uidensity="compact"] {
+      --nova-islands-gap: 0px;
+    }
+
+    @media (-moz-mac-tahoe-theme) {
+      /* Keep the blocks concentric with Tahoe's 16px window corners. */
+      --nova-islands-radius: calc(16px - (var(--nova-islands-gap) * 0.75));
+    }
+  }
+
+  /* ---- Chrome blocks: toolbox, sidebar launcher, sidebar panel --------- */
+
+  :root[lwtheme]:not([theme-image-in-toolbox]) #navigator-toolbox {
+    color: inherit !important;
+    background-color: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05)) !important;
+  }
+
+  :where(#navigator-toolbox, #sidebar-container, #sidebar-box) {
+    background-color: var(--toolbox-background-color) !important;
+    color: var(--toolbox-text-color) !important;
+    border-radius: var(--nova-islands-radius) !important;
+    border: 1px solid var(--nova-islands-separator) !important;
+    overflow: clip !important;
+  }
+
+  /* :not(.nova-islands-x) only adds specificity so this beats the
+   * expand-on-hover radius below, as it did in 155. */
+  :root[uidensity="compact"] #sidebar-container:not(.nova-islands-x) {
+    border-radius: 0 !important;
+    border-start-end-radius: var(--nova-islands-radius) !important;
+
+    &[sidebar-positionend] {
+      border-start-end-radius: 0 !important;
+      border-start-start-radius: var(--nova-islands-radius) !important;
+    }
+
+    &[sidebar-panel-open] {
+      border-radius: 0 !important;
+    }
+  }
+
+  :root[uidensity="compact"] :is(#navigator-toolbox, #sidebar-box) {
+    border-radius: 0 !important;
+    border-start-end-radius: var(--nova-islands-radius) !important;
+
+    /* Mirror the rounded corner when the sidebar is at the inline-end. */
+    &[sidebar-positionend] {
+      border-start-end-radius: 0 !important;
+      border-start-start-radius: var(--nova-islands-radius) !important;
+    }
+  }
+
+  /* Maximized: square the corners and drop the borders that meet the window edge. */
+  :root[sizemode="maximized"] {
+    #navigator-toolbox {
+      border-radius: 0 !important;
+      border-style: none !important;
+      border-block-end-style: solid !important;
+    }
+
+    :is(#sidebar-container, #sidebar-box) {
+      border-end-start-radius: 0 !important;
+      border-end-end-radius: 0 !important;
+      border-block-end: none !important;
+    }
+
+    #sidebar-container:not([sidebar-positionend]) {
+      border-start-start-radius: 0 !important;
+      border-inline-start: none !important;
+    }
+
+    #sidebar-container[sidebar-positionend] {
+      border-start-end-radius: 0 !important;
+      border-inline-end: none !important;
+    }
+
+    /* An open sidebar panel sits flush against the launcher. */
+    #sidebar-container[sidebar-panel-open] {
+      border-radius: 0 !important;
+    }
+  }
+
+  :where(#navigator-toolbox, #sidebar-container, #sidebar-box):-moz-window-inactive {
+    background-color: var(--toolbox-background-color-inactive) !important;
+    color: var(--toolbox-text-color-inactive) !important;
+  }
+
+  /* No borders or rounding against the screen edge in fullscreen. */
+  :root:is([inFullscreen], [inDOMFullscreen]) :where(#navigator-toolbox, #sidebar-container, #sidebar-box) {
+    border-radius: 0 !important;
+    border: none !important;
+  }
+
+  @media not (-moz-native-theme) {
+    #navigator-toolbox,
+    #sidebar-container {
+      background-color: var(--toolbar-background-color) !important;
+      color: var(--toolbar-text-color) !important;
+    }
+
+    /* Firefox 156 paints body with the toolbar color; 155 kept the toolbox
+     * color, which is what shows through the gaps. */
+    :root:not([lwtheme]) body {
+      background-color: var(--toolbox-background-color) !important;
+      color: var(--toolbox-text-color) !important;
+
+      &:-moz-window-inactive {
+        background-color: var(--toolbox-background-color-inactive) !important;
+        color: var(--toolbox-text-color-inactive) !important;
+      }
+    }
+  }
+
+  /* #browser is the surface behind the gaps: Firefox 155 left it unpainted. */
+  #browser {
+    background-color: transparent !important;
+  }
+
+  /* With vertical tabs, 155 left the toolbars transparent so they take the
+   * toolbox block's color; 156+ paint them with the toolbar color. */
+  @media -moz-pref("sidebar.verticalTabs") {
+    .browser-toolbar:not(.browser-titlebar) {
+      background-color: transparent !important;
+      color: inherit !important;
+    }
+  }
+
+  :root:not([lwtheme]) #PersonalToolbar {
+    background-color: var(--toolbar-background-color) !important;
+    color: var(--toolbar-text-color) !important;
+
+    &:not([collapsed]) {
+      border-top: 1px solid var(--nova-islands-separator) !important;
+    }
+  }
+
+  /* ---- Gaps: toolbox and #browser -------------------------------------- */
+
+  #navigator-toolbox {
+    margin-block-start: var(--nova-islands-gap) !important;
+    margin-block-end: var(--nova-islands-gap) !important;
+    margin-inline: var(--nova-islands-gap) !important;
+    /* Separator between the toolbox and the blocks below it (kept in
+     * maximized and fullscreen windows, as in 155). */
+    border-bottom: 1px solid var(--nova-islands-separator) !important;
+
+    :root:is([inFullscreen], [inDOMFullscreen]) & {
+      margin: 0 !important;
+    }
+
+    /* Maximized: no outer padding, keep the gap below the toolbox. */
+    :root[sizemode="maximized"] & {
+      margin-block-start: 0 !important;
+      margin-inline: 0 !important;
+    }
+  }
+
+  #browser {
+    gap: var(--nova-islands-gap) !important;
+  }
+
+  :root:not([inFullscreen], [inDOMFullscreen]) #browser {
+    padding: var(--nova-islands-gap) !important;
+    padding-block-start: 0 !important;
+    gap: var(--nova-islands-gap) !important;
+
+    :root[uidensity="compact"] & {
+      padding-block-start: 2px !important;
+      gap: 2px !important;
+    }
+  }
+
+  /* Keep the gap between blocks, drop the outer padding when maximized. */
+  :root[sizemode="maximized"] #browser {
+    padding-inline: 0 !important;
+    padding-block-end: 0 !important;
+  }
+
+  /* ---- Content area (tab that isn't in split view) --------------------- */
+
+  #tabbrowser-tabpanels > :not(.split-view-panel) .browserContainer {
+    border-radius: var(--nova-islands-radius) !important;
+    overflow: clip !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border: 1px solid var(--nova-islands-separator) !important;
+
+    :root:is([inDOMFullscreen], [inFullscreen]) & {
+      border-radius: 0 !important;
+      border: none !important;
+    }
+
+    :root[uidensity="compact"] & {
+      border-radius: 0 !important;
+      border-start-start-radius: var(--nova-islands-radius) !important;
+    }
+
+    /* Sidebar at the inline-end: round the inline-end corner instead. */
+    :root[uidensity="compact"] #tabbrowser-tabbox[sidebar-positionend] & {
+      border-start-start-radius: 0 !important;
+      border-start-end-radius: var(--nova-islands-radius) !important;
+    }
+
+    @media not -moz-pref("sidebar.verticalTabs") {
+      :root[uidensity="compact"] #sidebar-container[hidden] ~ #tabbrowser-tabbox & {
+        border-radius: 0 !important;
+      }
+    }
+
+    /* Maximized: zero the corners & borders that meet the bottom window edge. */
+    :root[sizemode="maximized"] & {
+      border-end-start-radius: 0 !important;
+      border-end-end-radius: 0 !important;
+      border-block-end: none !important;
+    }
+
+    /* Maximized with no sidebar docked on the inline-start edge. */
+    :root[sizemode="maximized"] #tabbrowser-tabbox:not([sidebar-shown]) &,
+    :root[sizemode="maximized"] #tabbrowser-tabbox[sidebar-shown][sidebar-positionend] & {
+      border-start-start-radius: 0 !important;
+      border-inline-start: none !important;
+    }
+
+    /* Maximized with nothing docked on the inline-end edge. */
+    :root[sizemode="maximized"] #tabbrowser-tabbox:not([sidebar-positionend], [ai-window-open]) & {
+      border-start-end-radius: 0 !important;
+      border-inline-end: none !important;
+    }
+  }
+
+  /* ---- Split view ------------------------------------------------------ */
+
+  @media -moz-pref("sidebar.revamp") {
+    #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active {
+      margin: var(--nova-islands-gap) !important;
+    }
+  }
+
+  #tabbrowser-tabpanels[splitview] .split-view-panel[column="0"] {
+    margin-inline-end: 0 !important;
+
+    :root[uidensity="compact"] & {
+      margin-inline-start: 2px !important;
+    }
+
+    :root[uidensity="compact"] &.deck-selected {
+      margin-inline-start: 4px !important;
+    }
+
+    #tabbrowser-tabbox:is([sidebar-shown], [sidebar-panel-open]) & {
+      margin-inline-start: 0 !important;
+    }
+
+    :root[uidensity="compact"] #tabbrowser-tabbox:is([sidebar-shown], [sidebar-panel-open]) & {
+      margin-inline-start: 0 !important;
+    }
+
+    :root[uidensity="compact"] #tabbrowser-tabbox:is([sidebar-shown], [sidebar-panel-open]) &.deck-selected {
+      margin-inline-start: 2px !important;
+    }
+  }
+
+  #tabbrowser-tabpanels[splitview] .split-view-panel[column="1"] {
+    margin-inline-start: 0 !important;
+
+    :root[uidensity="compact"] & {
+      margin-inline-end: 2px !important;
+    }
+
+    :root[uidensity="compact"] &.deck-selected {
+      margin-inline-end: 4px !important;
+    }
+  }
+
+  #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
+    border-radius: var(--nova-islands-radius) !important;
+  }
+
+  /* #browser already supplies the gap above and below the panels. */
+  #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active {
+    margin-block: 0 !important;
+
+    :root[uidensity="compact"] & {
+      margin-block-end: 2px !important;
+    }
+
+    :root[uidensity="compact"] &.deck-selected {
+      margin-block-start: 2px !important;
+      margin-block-end: 4px !important;
+    }
+  }
+
+  /* A page in fullscreen (e.g. a video) fills the screen. */
+  :root[inDOMFullscreen] #tabbrowser-tabpanels[splitview] > .split-view-panel-active.deck-selected {
+    margin: 0 !important;
+
+    & > .browserContainer {
+      border-radius: 0 !important;
+    }
+  }
+
+  /* ---- Dialog overlays: follow the rounded content area ---------------- */
+
+  .dialogOverlay[topmost="true"],
+  #window-modal-dialog::backdrop {
+    border-radius: var(--nova-islands-radius) !important;
+  }
+
+  .browserSidebarContainer.responsive-mode .dialogOverlay[topmost="true"] {
+    border-radius: 0 !important;
+  }
+
+  .browserSidebarContainer:not(.responsive-mode)[devtools-host-type="bottom"] > .dialogStack > .dialogOverlay[topmost="true"] {
+    border-end-start-radius: 0 !important;
+    border-end-end-radius: 0 !important;
+  }
+
+  /* DevTools docking side is physical (left/right), so physical properties. */
+  .browserSidebarContainer:not(.responsive-mode)[devtools-host-type="right"] > .dialogStack > .dialogOverlay[topmost="true"] {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+  }
+
+  .browserSidebarContainer:not(.responsive-mode)[devtools-host-type="left"] > .dialogStack > .dialogOverlay[topmost="true"] {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+  }
+
+  /* ---- Sidebar --------------------------------------------------------- */
+
+  /* Pull the launcher splitter fully over sidebar-main (factor 2 absorbs the
+   * #browser gap and the splitter width) and cancel the gap on the tabbox side. */
+  #sidebar-launcher-splitter {
+    margin-inline-start: calc(-2 * var(--splitter-width)) !important;
+    margin-inline-end: calc(-1 * var(--nova-islands-gap)) !important;
+  }
+
+  #sidebar-container[sidebar-positionend] + #sidebar-launcher-splitter {
+    margin-inline-start: calc(-1 * var(--nova-islands-gap)) !important;
+    margin-inline-end: calc(-2 * var(--splitter-width)) !important;
+  }
+
+  #sidebar-box {
+    background-color: var(--sidebar-background-color) !important;
+    color: var(--sidebar-text-color) !important;
+    padding-block-end: 0 !important;
+    border-inline-start: none !important;
+    outline: 0.5px solid var(--sidebar-border-color) !important;
+  }
+
+  #sidebar,
+  #sidebar-box #sidebar {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  /* Centre the splitter in the gap: 1px + 4px splitter + 1px. */
+  #sidebar-splitter {
+    width: var(--nova-islands-gap) !important;
+    border-inline: none !important;
+    margin-inline: calc(-1 * var(--nova-islands-gap) + 1px) !important;
+
+    :root[uidensity="compact"] & {
+      width: 2px !important;
+      margin-inline: -2px !important;
+    }
+  }
+
+  /* No panel open: the launcher splitter sits between sidebar-main and content. */
+  #sidebar-container:not([sidebar-panel-open]) + #sidebar-launcher-splitter {
+    margin-inline: calc(-1 * var(--nova-islands-gap) + 1px) !important;
+
+    :root[uidensity="compact"] & {
+      width: 2px !important;
+      margin-inline: -2px !important;
+    }
+  }
+
+  /* Leave room for the selected split-view panel's 2px focus outline. */
+  :root[splitview-selected-column="0"] #sidebar-box:not([sidebar-positionend]) + #sidebar-splitter,
+  :root[splitview-selected-column="0"] #sidebar-container:not([sidebar-panel-open]):not([sidebar-positionend]) + #sidebar-launcher-splitter {
+    margin-inline-end: calc(-1 * var(--nova-islands-gap) + 3px) !important;
+  }
+
+  :root[splitview-selected-column="1"] #sidebar-box[sidebar-positionend] + #sidebar-splitter,
+  :root[splitview-selected-column="1"] #sidebar-container[sidebar-positionend]:not([sidebar-panel-open]) + #sidebar-launcher-splitter {
+    margin-inline-start: calc(-1 * var(--nova-islands-gap) + 3px) !important;
+  }
+
+  /* Panel open: square the corners where sidebar-main and sidebar-box meet. */
+  #sidebar-container[sidebar-panel-open] {
+    &:not([sidebar-positionend]) {
+      border-start-end-radius: 0 !important;
+      border-end-end-radius: 0 !important;
+    }
+
+    &[sidebar-positionend] {
+      border-start-start-radius: 0 !important;
+      border-end-start-radius: 0 !important;
+    }
+  }
+
+  #sidebar-container:not([hidden]) ~ #sidebar-box[sidebar-panel-open] {
+    &:not([sidebar-positionend]) {
+      border-start-start-radius: 0 !important;
+      border-end-start-radius: 0 !important;
+    }
+
+    &[sidebar-positionend] {
+      border-start-end-radius: 0 !important;
+      border-end-end-radius: 0 !important;
+    }
+  }
+
+  @media not -moz-pref("sidebar.verticalTabs") {
+    #sidebar-box[sidebar-panel-open]:not([sidebar-positionend]) {
+      margin-inline-start: calc(-1 * var(--nova-islands-gap)) !important;
+    }
+
+    #sidebar-box[sidebar-panel-open][sidebar-positionend] {
+      margin-inline-end: calc(-1 * var(--nova-islands-gap)) !important;
+    }
+  }
+
+  /* ---- Sidebar: expand on hover ---------------------------------------- */
+
+  :root[sidebar-expand-on-hover] {
+    /* The launcher floats over the content inside the window gap. */
+    #sidebar-container {
+      position: absolute !important;
+      inset-block-end: var(--nova-islands-gap) !important;
+      inset-inline-start: var(--nova-islands-gap) !important;
+      border-radius: var(--nova-islands-radius) !important;
+
+      :root[uidensity="compact"] & {
+        --nova-islands-gap: 2px;
+        margin-block-start: var(--nova-islands-gap) !important;
+      }
+
+      &[sidebar-launcher-expanded],
+      &[sidebar-ongoing-animations]:not([sidebar-launcher-expanded]) {
+        background-image: none !important;
+
+        &:not([sidebar-positionend]) {
+          border-inline-end: 1px solid var(--nova-islands-separator) !important;
+        }
+
+        &[sidebar-positionend] {
+          border-inline-start: 1px solid var(--nova-islands-separator) !important;
+        }
+      }
+
+      &[sidebar-positionend] {
+        inset-inline-start: unset !important;
+        inset-inline-end: var(--nova-islands-gap) !important;
+      }
+    }
+
+    &:not([lwtheme]) #sidebar-container {
+      background-color: var(--toolbar-background-color) !important;
+    }
+
+    &[lwtheme] #sidebar-container {
+      color: var(--toolbox-text-color) !important;
+      background-color: var(--toolbox-background-color) !important;
+
+      &:-moz-window-inactive {
+        color: var(--toolbox-text-color-inactive) !important;
+        background-color: var(--toolbox-background-color-inactive) !important;
+      }
+    }
+
+    /* Make room for the collapsed launcher next to the content or the panel. */
+    #tabbrowser-tabbox {
+      &:not([sidebar-positionend], [sidebar-panel-open]) {
+        margin-inline-start: calc(var(--sidebar-launcher-collapsed-width) + var(--nova-islands-gap)) !important;
+      }
+
+      &[sidebar-positionend]:not([sidebar-panel-open]) {
+        margin-inline-end: calc(var(--sidebar-launcher-collapsed-width) + var(--nova-islands-gap)) !important;
+      }
+    }
+
+    /* Fullscreen with the sidebar closed: no margins around the content. */
+    &[fullscreenNavToolboxHidden] #tabbrowser-tabbox:not([sidebar-panel-open]) {
+      margin-inline: 0 !important;
+    }
+
+    #sidebar-box {
+      :root[uidensity="compact"] & {
+        --nova-islands-gap: 2px;
+      }
+
+      &:not([sidebar-positionend])[sidebar-panel-open] {
+        margin-inline-start: calc(var(--sidebar-launcher-collapsed-width) + var(--nova-islands-gap)) !important;
+      }
+
+      &[sidebar-positionend][sidebar-panel-open] {
+        margin-inline-end: calc(var(--sidebar-launcher-collapsed-width) + var(--nova-islands-gap)) !important;
+      }
+    }
+  }
+
+  /* ---- Customize mode -------------------------------------------------- */
+
+  /* Float as a rounded card matching the content area. */
+  #customization-container {
+    margin-inline: var(--nova-islands-gap) !important;
+    margin-block-end: var(--nova-islands-gap) !important;
+    border-radius: var(--nova-islands-radius) !important;
+    border: 1px solid var(--nova-islands-separator) !important;
+    overflow: clip !important;
+
+    :root[sizemode="maximized"] & {
+      margin-inline: 0 !important;
+      margin-block-end: 0 !important;
+      border-radius: 0 !important;
+      border-inline: none !important;
+      border-block-end: none !important;
+    }
+  }
+}
