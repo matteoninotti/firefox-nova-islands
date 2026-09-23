@@ -228,7 +228,10 @@ if [[ -f $PROFILE/user-overrides.js ]]; then
 fi
 
 # Nova is on by default from Firefox 157; before that it needs browser.nova.enabled.
-ff_major=$(sed -n 's/^LastVersion=\([0-9]*\).*/\1/p' "$PROFILE/compatibility.ini" 2>/dev/null | head -n1)
+ff_major=""
+if [[ -f $PROFILE/compatibility.ini ]]; then
+  ff_major=$(sed -n 's/^LastVersion=\([0-9]*\).*/\1/p' "$PROFILE/compatibility.ini" | head -n1)
+fi
 nova_note=0
 if grep -qF 'user_pref("browser.nova.enabled", false);' "$PROFILE/prefs.js" 2>/dev/null; then
   nova_note=1
