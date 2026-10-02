@@ -40,6 +40,9 @@
     --nova-islands-gap: 4px;
     --nova-islands-radius: var(--chrome-block-radius, var(--window-border-radius, 10px));
     --nova-islands-separator: var(--chrome-content-separator-color);
+    /* Fill of the toolbar/sidebar blocks, and of the window behind the gaps. */
+    --nova-islands-block-bg: var(--toolbar-background-color);
+    --nova-islands-window-bg: var(--toolbox-background-color);
 
     &[uidensity="compact"] {
       --nova-islands-gap: 0px;
@@ -49,6 +52,16 @@
       /* Keep the blocks concentric with Tahoe's 16px window corners. */
       --nova-islands-radius: calc(16px - (var(--nova-islands-gap) * 0.75));
     }
+  }
+
+  /* Firefox 157 made the toolbar and sidebar colours translucent and moved the
+   * toolbar gradient onto the window background, which washes the islands out.
+   * Pin the Firefox 155/156 palette for the default theme; installed themes
+   * (lwtheme) keep the colours Firefox gives them. */
+  :root:not([lwtheme]) {
+    --nova-islands-block-bg: light-dark(#ffffff, #252428);
+    --nova-islands-window-bg: light-dark(rgb(234, 234, 237), #121114);
+    --nova-islands-separator: light-dark(rgb(201, 192, 227), rgb(63, 62, 66));
   }
 
   /* ---- Chrome blocks: toolbox, sidebar launcher, sidebar panel --------- */
@@ -137,14 +150,16 @@
   @media not (-moz-native-theme) {
     #navigator-toolbox,
     #sidebar-container {
-      background-color: var(--toolbar-background-color) !important;
+      background-color: var(--nova-islands-block-bg) !important;
       color: var(--toolbar-text-color) !important;
     }
 
     /* Firefox 156 paints body with the toolbar color; 155 kept the toolbox
-     * color, which is what shows through the gaps. */
+     * color, which is what shows through the gaps. 155/156 had no gradient
+     * here: it sat on the toolbox (see below). */
     :root:not([lwtheme]) body {
-      background-color: var(--toolbox-background-color) !important;
+      background-color: var(--nova-islands-window-bg) !important;
+      background-image: none !important;
       color: var(--toolbox-text-color) !important;
 
       &:-moz-window-inactive {
@@ -152,6 +167,14 @@
         color: var(--toolbox-text-color-inactive) !important;
       }
     }
+  }
+
+  /* Firefox 157 draws the toolbar gradient on the window background; 155/156
+   * drew it on the toolbox. */
+  :root:not([lwtheme]) #navigator-toolbox {
+    background-image: var(--toolbox-background-gradient) !important;
+    background-repeat: var(--toolbox-background-repeat) !important;
+    background-position: var(--toolbox-background-position) !important;
   }
 
   /* #browser is the surface behind the gaps: Firefox 155 left it unpainted. */
@@ -169,7 +192,7 @@
   }
 
   :root:not([lwtheme]) #PersonalToolbar {
-    background-color: var(--toolbar-background-color) !important;
+    background-color: var(--nova-islands-block-bg) !important;
     color: var(--toolbar-text-color) !important;
 
     &:not([collapsed]) {
@@ -501,7 +524,7 @@
     }
 
     &:not([lwtheme]) #sidebar-container {
-      background-color: var(--toolbar-background-color) !important;
+      background-color: var(--nova-islands-block-bg) !important;
     }
 
     &[lwtheme] #sidebar-container {

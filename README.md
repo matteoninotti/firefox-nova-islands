@@ -35,6 +35,8 @@ It behaves the same as Firefox 155:
 
 It also covers split view, docked DevTools, the expand-on-hover sidebar, sidebar on the right, customize mode, and themes.
 
+Colours are Firefox 155/156's: solid toolbar and sidebar blocks. Firefox 157 made those translucent and moved the toolbar gradient to the window background, so the CSS pins the older colours for the default theme. Installed themes keep their own colours.
+
 It only does something when Nova is on. Nova is on by default from Firefox 157. On Firefox 156, turn it on by setting `browser.nova.enabled` to `true` in `about:config`.
 
 ## Install
