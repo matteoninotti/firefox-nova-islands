@@ -8,17 +8,22 @@
 # Usage:
 #   .\install.ps1                      pick a profile interactively and install
 #   .\install.ps1 -ProfilePath <dir>   install into a specific profile folder
+#   .\install.ps1 -NewTab [...]        also restore the Firefox 155/156 new tab colours
 #   .\install.ps1 -Uninstall [...]     remove it again
 #
 # What it does in the chosen profile:
-#   1. backs up chrome\userChrome.css and user.js (if present)
+#   1. backs up chrome\userChrome.css, chrome\userContent.css and user.js (if present)
 #   2. copies nova-islands.css into chrome\
 #   3. adds  @import url("nova-islands.css");  to the top of chrome\userChrome.css
 #   4. adds  toolkit.legacyUserProfileCustomizations.stylesheets = true  to user.js
+#   with -NewTab it also:
+#   5. copies nova-newtab.css into chrome\
+#   6. adds  @import url("nova-newtab.css");  to the top of chrome\userContent.css
 
 [CmdletBinding()]
 param(
     [string]$ProfilePath,
+    [switch]$NewTab,
     [switch]$Uninstall
 )
 
@@ -27,6 +32,8 @@ $ErrorActionPreference = 'Stop'
 $RepoRaw    = 'https://raw.githubusercontent.com/matteoninotti/firefox-nova-islands/main'
 $CssName    = 'nova-islands.css'
 $ImportLine = '@import url("nova-islands.css");'
+$NewTabName = 'nova-newtab.css'
+$NewTabImportLine = '@import url("nova-newtab.css");'
 $PrefLine   = 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true); // firefox-nova-islands'
 $PrefMark   = '// firefox-nova-islands'
 $Utf8NoBom  = New-Object System.Text.UTF8Encoding($false)
@@ -120,6 +127,7 @@ if (-not ((Test-Path -LiteralPath (Join-Path $ProfilePath 'prefs.js')) -or (Test
 
 $Chrome     = Join-Path $ProfilePath 'chrome'
 $UserChrome = Join-Path $Chrome 'userChrome.css'
+$UserContent = Join-Path $Chrome 'userContent.css'
 $UserJs     = Join-Path $ProfilePath 'user.js'
 
 if (Get-Process -Name firefox -ErrorAction SilentlyContinue) {
@@ -132,7 +140,7 @@ function Backup-Files {
     $n = 1
     while (Test-Path -LiteralPath $dir) { $dir = Join-Path $ProfilePath "nova-islands-backup-$stamp-$n"; $n++ }
     New-Item -ItemType Directory -Path $dir | Out-Null
-    foreach ($f in @($UserChrome, $UserJs)) {
+    foreach ($f in @($UserChrome, $UserContent, $UserJs)) {
         if (Test-Path -LiteralPath $f) { Copy-Item -LiteralPath $f -Destination $dir }
     }
     Write-Host "Backup: $dir"
@@ -143,8 +151,12 @@ function Backup-Files {
 if ($Uninstall) {
     Backup-Files
     Remove-Item -LiteralPath (Join-Path $Chrome $CssName) -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $Chrome $NewTabName) -ErrorAction SilentlyContinue
     if (Test-Path -LiteralPath $UserChrome) {
         Write-Lines $UserChrome @(Read-Lines $UserChrome | Where-Object { $_ -ne $ImportLine })
+    }
+    if (Test-Path -LiteralPath $UserContent) {
+        Write-Lines $UserContent @(Read-Lines $UserContent | Where-Object { $_ -ne $NewTabImportLine })
     }
     if (Test-Path -LiteralPath $UserJs) {
         Write-Lines $UserJs @(Read-Lines $UserJs | Where-Object { -not $_.Contains($PrefMark) })
@@ -160,19 +172,29 @@ if ($Uninstall) {
 Backup-Files
 New-Item -ItemType Directory -Path $Chrome -Force | Out-Null
 
-$localCss = if ($PSScriptRoot) { Join-Path $PSScriptRoot $CssName } else { $null }
-if ($localCss -and (Test-Path -LiteralPath $localCss)) {
-    Copy-Item -LiteralPath $localCss -Destination (Join-Path $Chrome $CssName) -Force
-} else {
-    Write-Host "Downloading $CssName ..."
-    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-    Invoke-WebRequest -UseBasicParsing -Uri "$RepoRaw/$CssName" -OutFile (Join-Path $Chrome $CssName)
+# Copy a CSS file from the checkout, or download it when run without the repo.
+function Copy-NovaCss([string]$Name) {
+    $local = if ($PSScriptRoot) { Join-Path $PSScriptRoot $Name } else { $null }
+    if ($local -and (Test-Path -LiteralPath $local)) {
+        Copy-Item -LiteralPath $local -Destination (Join-Path $Chrome $Name) -Force
+    } else {
+        Write-Host "Downloading $Name ..."
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -UseBasicParsing -Uri "$RepoRaw/$Name" -OutFile (Join-Path $Chrome $Name)
+    }
 }
 
 # @import must come before any other rule, so put it on the first line.
-$ucLines = @(Read-Lines $UserChrome)
-if ($ucLines -notcontains $ImportLine) {
-    Write-Lines $UserChrome (@($ImportLine) + $ucLines)
+function Add-ImportLine([string]$File, [string]$Line) {
+    $lines = @(Read-Lines $File)
+    if ($lines -notcontains $Line) { Write-Lines $File (@($Line) + $lines) }
+}
+
+Copy-NovaCss $CssName
+Add-ImportLine $UserChrome $ImportLine
+if ($NewTab) {
+    Copy-NovaCss $NewTabName
+    Add-ImportLine $UserContent $NewTabImportLine
 }
 
 $jsLines = @(Read-Lines $UserJs)
@@ -181,6 +203,11 @@ if (-not ($jsLines | Where-Object { $_.Contains($PrefMark) })) {
 }
 
 Write-Host "Installed into $ProfilePath"
+if ($NewTab) {
+    Write-Host 'New tab colours: installed.'
+} else {
+    Write-Host 'Tip: run again with -NewTab to also restore the Firefox 155/156 new tab colours.'
+}
 
 if (Test-Path -LiteralPath (Join-Path $ProfilePath 'user-overrides.js')) {
     Write-Host ''

@@ -1,0 +1,28 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* ==========================================================================
+ * firefox-nova-islands: new tab colours (optional)
+ * https://github.com/matteoninotti/firefox-nova-islands
+ *
+ * Firefox 157 changed the new tab page (about:newtab / about:home) from fixed
+ * charcoal colours to its shared palette, which is much darker. This restores
+ * the Firefox 155/156 colours by overriding the three variables that changed:
+ *
+ *   --newtab-background-color            the page
+ *   --newtab-background-card             shortcut tiles, weather and widget cards
+ *   --newtab-background-color-secondary  the search box
+ *
+ * It is loaded through userContent.css (not userChrome.css) and only colours
+ * change; the layout of the page is Firefox's own.
+ * ========================================================================== */
+
+@-moz-document url("about:newtab"), url("about:home") {
+  :root,
+  body {
+    --newtab-background-color: light-dark(#f9f9fb, #2b2a33) !important;
+    --newtab-background-card: light-dark(color-mix(in srgb, white 85%, transparent), rgba(66, 65, 77, 0.85)) !important;
+    --newtab-background-color-secondary: light-dark(white, #42414d) !important;
+  }
+}

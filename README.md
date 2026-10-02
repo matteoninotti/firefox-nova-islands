@@ -39,6 +39,12 @@ Colours are Firefox 155/156's: solid toolbar and sidebar blocks. Firefox 157 mad
 
 It only does something when Nova is on. Nova is on by default from Firefox 157. On Firefox 156, turn it on by setting `browser.nova.enabled` to `true` in `about:config`.
 
+## New tab colours (optional)
+
+Firefox 157 also changed the new tab page from charcoal to a much darker palette. `nova-newtab.css` brings back the Firefox 155/156 colours: the page, the shortcut tiles and cards, and the search box, in dark and light mode. Only colours change; the layout of the page (widgets, stories) is Firefox's own.
+
+It is separate and optional: add `--newtab` (macOS/Linux) or `-NewTab` (Windows) when you install. It is loaded through `userContent.css`.
+
 ## Install
 
 Close Firefox first, or restart it afterwards.
@@ -57,6 +63,8 @@ Or, without cloning:
 curl -fsSL https://raw.githubusercontent.com/matteoninotti/firefox-nova-islands/main/install.sh | bash
 ```
 
+Add `--newtab` to either command (for example `./install.sh --newtab`, or `... | bash -s -- --newtab`) to also restore the new tab colours.
+
 ### Windows (PowerShell)
 
 Download and unzip the repo (**Code → Download ZIP**), then run this in that folder:
@@ -64,6 +72,8 @@ Download and unzip the repo (**Code → Download ZIP**), then run this in that f
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
+
+Add `-NewTab` (for example `.\install.ps1 -NewTab`) to also restore the new tab colours.
 
 ### What the installer does
 
@@ -73,6 +83,8 @@ The installer lists your Firefox profiles, suggests the default one, and then:
 2. copies `nova-islands.css` into the profile's `chrome/` folder
 3. adds `@import url("nova-islands.css");` as the first line of `chrome/userChrome.css`, creating the file if needed and keeping your existing styles
 4. adds `toolkit.legacyUserProfileCustomizations.stylesheets = true` to `user.js`, which is what makes Firefox load `userChrome.css`
+
+With `--newtab` / `-NewTab` it also copies `nova-newtab.css` into `chrome/` and adds `@import url("nova-newtab.css");` as the first line of `chrome/userContent.css`.
 
 To pick a profile yourself, run `./install.sh --profile "<profile folder>"` or `.\install.ps1 -ProfilePath "<profile folder>"`. You can find the folder in `about:profiles`.
 
@@ -85,7 +97,8 @@ To pick a profile yourself, run `./install.sh --profile "<profile folder>"` or `
    ```css
    @import url("nova-islands.css");
    ```
-5. Restart Firefox.
+5. For the new tab colours too: copy `nova-newtab.css` into the same `chrome` folder and add `@import url("nova-newtab.css");` as the first line of `chrome/userContent.css` (create it if needed).
+6. Restart Firefox.
 
 ## Uninstall
 
@@ -97,7 +110,9 @@ To pick a profile yourself, run `./install.sh --profile "<profile folder>"` or `
 powershell -ExecutionPolicy Bypass -File .\install.ps1 -Uninstall
 ```
 
-To uninstall by hand, delete `chrome/nova-islands.css` and remove the `@import` line from `chrome/userChrome.css`.
+The uninstall also removes the new tab colours if you installed them.
+
+To uninstall by hand, delete `chrome/nova-islands.css` and `chrome/nova-newtab.css`, and remove the `@import` lines from `chrome/userChrome.css` and `chrome/userContent.css`.
 
 ## Betterfox / arkenfox users
 

@@ -9,13 +9,17 @@
 # Usage:
 #   ./install.sh                     pick a profile interactively and install
 #   ./install.sh --profile <dir>     install into a specific profile folder
+#   ./install.sh --newtab [...]      also restore the Firefox 155/156 new tab colours
 #   ./install.sh --uninstall [...]   remove it again
 #
 # What it does in the chosen profile:
-#   1. backs up chrome/userChrome.css and user.js (if present)
+#   1. backs up chrome/userChrome.css, chrome/userContent.css and user.js (if present)
 #   2. copies nova-islands.css into chrome/
 #   3. adds  @import url("nova-islands.css");  to the top of chrome/userChrome.css
 #   4. adds  toolkit.legacyUserProfileCustomizations.stylesheets = true  to user.js
+#   with --newtab it also:
+#   5. copies nova-newtab.css into chrome/
+#   6. adds  @import url("nova-newtab.css");  to the top of chrome/userContent.css
 
 set -euo pipefail
 
@@ -23,6 +27,9 @@ REPO_RAW="https://raw.githubusercontent.com/matteoninotti/firefox-nova-islands/m
 CSS_NAME="nova-islands.css"
 IMPORT_LINE='@import url("nova-islands.css");'
 IMPORT_RE='^@import url\("nova-islands\.css"\);'$'\r''?$'
+NEWTAB_NAME="nova-newtab.css"
+NEWTAB_IMPORT='@import url("nova-newtab.css");'
+NEWTAB_IMPORT_RE='^@import url\("nova-newtab\.css"\);'$'\r''?$'
 PREF_LINE='user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true); // firefox-nova-islands'
 PREF_MARK='// firefox-nova-islands'
 
@@ -31,6 +38,7 @@ usage() {
 Usage:
   install.sh                     pick a profile interactively and install
   install.sh --profile <dir>     install into a specific profile folder
+  install.sh --newtab [...]      also restore the Firefox 155/156 new tab colours
   install.sh --uninstall [...]   remove it again
 USAGE
 }
@@ -50,9 +58,11 @@ ask() {
 
 PROFILE=""
 UNINSTALL=0
+NEWTAB=0
 while [[ $# -gt 0 ]]; do
   case $1 in
     --profile) [[ $# -ge 2 ]] || die "--profile needs a folder"; PROFILE=$2; shift 2 ;;
+    --newtab) NEWTAB=1; shift ;;
     --uninstall) UNINSTALL=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown option: $1" ;;
@@ -150,6 +160,7 @@ fi
 
 CHROME="$PROFILE/chrome"
 USERCHROME="$CHROME/userChrome.css"
+USERCONTENT="$CHROME/userContent.css"
 USERJS="$PROFILE/user.js"
 
 if pgrep -x firefox >/dev/null 2>&1 || pgrep -x firefox-bin >/dev/null 2>&1 || pgrep -f 'Firefox.app/Contents/MacOS/firefox' >/dev/null 2>&1; then
@@ -160,6 +171,7 @@ backup() {
   local dir
   dir=$(mktemp -d "$PROFILE/nova-islands-backup-$(date +%Y%m%d-%H%M%S)-XXXX")
   [[ -f $USERCHROME ]] && cp -p "$USERCHROME" "$dir/"
+  [[ -f $USERCONTENT ]] && cp -p "$USERCONTENT" "$dir/"
   [[ -f $USERJS ]] && cp -p "$USERJS" "$dir/"
   info "Backup: $dir"
 }
@@ -183,8 +195,9 @@ remove_lines() {
 
 if (( UNINSTALL )); then
   backup
-  rm -f "$CHROME/$CSS_NAME"
+  rm -f "$CHROME/$CSS_NAME" "$CHROME/$NEWTAB_NAME"
   remove_lines "$IMPORT_RE" regex "$USERCHROME"
+  remove_lines "$NEWTAB_IMPORT_RE" regex "$USERCONTENT"
   remove_lines "$PREF_MARK" contains "$USERJS"
   info "Removed firefox-nova-islands from $PROFILE"
   info "The stylesheet pref stays enabled in prefs.js; reset it in about:config if nothing else needs it."
@@ -202,22 +215,35 @@ fi
 backup
 mkdir -p "$CHROME"
 
-if [[ -n $SCRIPT_DIR && -f $SCRIPT_DIR/$CSS_NAME ]]; then
-  cp "$SCRIPT_DIR/$CSS_NAME" "$CHROME/$CSS_NAME"
-else
-  info "Downloading $CSS_NAME ..."
-  curl -fsSL "$REPO_RAW/$CSS_NAME" -o "$CHROME/$CSS_NAME" || die "download failed"
-fi
+# Copy a CSS file from the checkout, or download it when piped (curl | bash).
+fetch_css() {
+  if [[ -n $SCRIPT_DIR && -f $SCRIPT_DIR/$1 ]]; then
+    cp "$SCRIPT_DIR/$1" "$CHROME/$1"
+  else
+    info "Downloading $1 ..."
+    curl -fsSL "$REPO_RAW/$1" -o "$CHROME/$1" || die "download failed"
+  fi
+}
 
 # @import must come before any other rule, so put it on the first line.
-if [[ -f $USERCHROME ]] && grep -qE -- "$IMPORT_RE" "$USERCHROME"; then
-  :
-else
-  tmp=$(mktemp "$CHROME/userChrome.XXXXXX")
-  printf '%s\n' "$IMPORT_LINE" >"$tmp"
-  [[ -f $USERCHROME ]] && cat "$USERCHROME" >>"$tmp"
-  cat "$tmp" >"$USERCHROME"
+# $1 = target file, $2 = the import line, $3 = regex matching it.
+add_import() {
+  local tmp
+  if [[ -f $1 ]] && grep -qE -- "$3" "$1"; then
+    return 0
+  fi
+  tmp=$(mktemp "$CHROME/import.XXXXXX")
+  printf '%s\n' "$2" >"$tmp"
+  [[ -f $1 ]] && cat "$1" >>"$tmp"
+  cat "$tmp" >"$1"
   rm -f "$tmp"
+}
+
+fetch_css "$CSS_NAME"
+add_import "$USERCHROME" "$IMPORT_LINE" "$IMPORT_RE"
+if (( NEWTAB )); then
+  fetch_css "$NEWTAB_NAME"
+  add_import "$USERCONTENT" "$NEWTAB_IMPORT" "$NEWTAB_IMPORT_RE"
 fi
 
 if ! { [[ -f $USERJS ]] && grep -qF -- "$PREF_MARK" "$USERJS"; }; then
@@ -229,6 +255,11 @@ if ! { [[ -f $USERJS ]] && grep -qF -- "$PREF_MARK" "$USERJS"; }; then
 fi
 
 info "Installed into $PROFILE"
+if (( NEWTAB )); then
+  info "New tab colours: installed."
+else
+  info "Tip: run again with --newtab to also restore the Firefox 155/156 new tab colours."
+fi
 
 if [[ -f $PROFILE/user-overrides.js ]]; then
   info ""
