@@ -17,11 +17,22 @@
  * sidebar.css, customizeMode.css), with !important added and a few rules
  * that later versions changed underneath them re-applied.
  *
- * Behaviour (same as Firefox 155):
+ * Behaviour (as in Firefox 155, apart from the differences listed below):
  *   - normal window:  gap around the window edge and between blocks
  *   - maximized:      no outer gap; gaps between blocks kept
  *   - fullscreen:     no outer gap, no rounding; sidebar/content gap kept
  *   - compact density: 2px gaps, only the inner corner rounded
+ *
+ * Deliberate differences from Firefox 155/156:
+ *   - Gaps are 6px instead of 4px, so the window edge and the toolbar gap
+ *     match the gap between the sidebar and the page (1px + 4px splitter +
+ *     1px). Set --nova-islands-gap to 4px for 155's gaps.
+ *   - Split view uses Firefox 157's outline on the unfocused page, also on 156
+ *     (156 used a border, which shifted the page by 1px when focus moved
+ *     between panels), drawn in the same colour as the other island borders.
+ *   - Split pages line up with a single page: 155's extra inset on their
+ *     outer side is gone. Maximized, they keep borders and rounded corners
+ *     only on their inner edges, like a single page.
  *
  * Everything is inside -moz-pref("browser.nova.enabled"): it does nothing
  * unless Nova is enabled.
@@ -37,7 +48,7 @@
   :root {
     /* Firefox 155-156 call the radius --chrome-block-radius, 157+ calls it
      * --window-border-radius; both are set per platform by Firefox itself. */
-    --nova-islands-gap: 4px;
+    --nova-islands-gap: 6px;
     --nova-islands-radius: var(--chrome-block-radius, var(--window-border-radius, 10px));
     --nova-islands-separator: var(--chrome-content-separator-color);
     /* Fill of the toolbar/sidebar blocks, and of the window behind the gaps. */
@@ -296,9 +307,13 @@
 
   /* ---- Split view ------------------------------------------------------ */
 
+  /* 155 inset the split panels by another gap on their outer side, so split
+   * pages sat further from the window edge than a single page (and kept that
+   * inset when maximized). Custom: #browser's padding is the only outer gap,
+   * so split pages line up with a single page. */
   @media -moz-pref("sidebar.revamp") {
     #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active {
-      margin: var(--nova-islands-gap) !important;
+      margin: 0 !important;
     }
   }
 
@@ -340,6 +355,46 @@
 
   #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
     border-radius: var(--nova-islands-radius) !important;
+  }
+
+  /* Custom (Firefox 157's fix, also applied on 156): the unfocused panel gets
+   * an outline instead of 156's border, so the page no longer shifts by 1px
+   * when focus moves between panels. Drawn in the islands' border colour
+   * instead of 157's translucent one. */
+  #tabbrowser-tabpanels[splitview] .split-view-panel:not(.deck-selected) > .browserContainer {
+    border: none !important;
+    outline: 1px solid var(--nova-islands-separator) !important;
+    outline-offset: -1px !important;
+  }
+
+  /* Custom: maximized (or fullscreen), split pages keep borders and rounding
+   * only on their inner edges, like a single page. The unfocused panel's
+   * outline moves outside the page so the parts on screen-edge sides fall
+   * off-screen (the focused panel's focus outline already sits outside). */
+  :root:is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
+    border-end-start-radius: 0 !important;
+    border-end-end-radius: 0 !important;
+
+    .split-view-panel:not(.deck-selected) > & {
+      outline-offset: 0 !important;
+    }
+  }
+
+  /* Column 0: start edge meets the screen unless a sidebar sits there. */
+  :root:is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabbox:not([sidebar-shown], [sidebar-panel-open]) #tabbrowser-tabpanels[splitview] .split-view-panel[column="0"] > .browserContainer,
+  :root:is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabbox[sidebar-positionend] #tabbrowser-tabpanels[splitview] .split-view-panel[column="0"] > .browserContainer {
+    border-start-start-radius: 0 !important;
+  }
+
+  /* Column 1: end edge meets the screen unless a sidebar sits there. */
+  :root:is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabbox:not([sidebar-positionend], [ai-window-open]) #tabbrowser-tabpanels[splitview] .split-view-panel[column="1"] > .browserContainer {
+    border-start-end-radius: 0 !important;
+  }
+
+  /* Fullscreen with the toolbars slid away: the top edge meets the screen. */
+  :root[fullscreenNavToolboxHidden] #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
+    border-start-start-radius: 0 !important;
+    border-start-end-radius: 0 !important;
   }
 
   /* #browser already supplies the gap above and below the panels. */
@@ -423,7 +478,7 @@
 
   /* Centre the splitter in the gap: 1px + 4px splitter + 1px. */
   #sidebar-splitter {
-    width: var(--nova-islands-gap) !important;
+    width: 4px !important;
     border-inline: none !important;
     margin-inline: calc(-1 * var(--nova-islands-gap) + 1px) !important;
 
