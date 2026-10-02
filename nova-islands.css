@@ -360,24 +360,25 @@
   /* Custom (Firefox 157's fix, also applied on 156): the unfocused panel gets
    * an outline instead of 156's border, so the page no longer shifts by 1px
    * when focus moves between panels. Drawn in the islands' border colour
-   * instead of 157's translucent one. */
-  #tabbrowser-tabpanels[splitview] .split-view-panel:not(.deck-selected) > .browserContainer {
-    border: none !important;
-    outline: 1px solid var(--nova-islands-separator) !important;
-    outline-offset: -1px !important;
+   * instead of 157's translucent one, and just outside the page like the
+   * other borders: inside it, the page content paints over it. The panel
+   * clips its overflow, so let it paint 1px past its edge. */
+  #tabbrowser-tabpanels[splitview] .split-view-panel:not(.deck-selected) {
+    overflow-clip-margin: 1px !important;
+
+    & > .browserContainer {
+      border: none !important;
+      outline: 1px solid var(--nova-islands-separator) !important;
+      outline-offset: 0 !important;
+    }
   }
 
   /* Custom: maximized (or fullscreen), split pages keep borders and rounding
-   * only on their inner edges, like a single page. The unfocused panel's
-   * outline moves outside the page so the parts on screen-edge sides fall
-   * off-screen (the focused panel's focus outline already sits outside). */
+   * only on their inner edges, like a single page. Outlines sit outside the
+   * page, so on the sides that meet the screen they fall off-screen. */
   :root:is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
     border-end-start-radius: 0 !important;
     border-end-end-radius: 0 !important;
-
-    .split-view-panel:not(.deck-selected) > & {
-      outline-offset: 0 !important;
-    }
   }
 
   /* Column 0: start edge meets the screen unless a sidebar sits there. */
