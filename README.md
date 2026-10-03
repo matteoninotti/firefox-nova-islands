@@ -26,22 +26,22 @@ Firefox 156 removed those gaps ([bug 2062351](https://bugzilla.mozilla.org/show_
 
 It behaves like Firefox 155, with the custom changes listed below:
 
-| Window state    | Result                                                                                                         |
-| --------------- | -------------------------------------------------------------------------------------------------------------- |
-| Normal window   | 6px gap around the window edge and between the toolbar, sidebar and page. All blocks are rounded and bordered. |
-| Maximized       | No gap at the window edge. The gaps between the toolbar, sidebar and page stay.                                |
-| Fullscreen      | No outer gap and no rounding. The gap between the sidebar and the page stays.                                  |
-| Compact density | 2px gaps. Only the inner corner is rounded.                                                                    |
+| Window state    | Result                                                                                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Normal window   | 4px gap around the window edge and below the toolbar, 6px between the sidebar and the page. All blocks are rounded and bordered.            |
+| Maximized       | No gap at the window edge. The gaps between the toolbar, sidebar and page stay.                                                           |
+| Fullscreen      | No outer gap and no rounding. The gap between the sidebar and the page stays.                                                             |
+| Compact density | 2px gaps. Only the inner corner is rounded.                                                                                               |
 
-It also covers split view, docked DevTools, the expand-on-hover sidebar, sidebar on the right, customize mode, and themes.
+It also covers split view, docked DevTools, the expand-on-hover sidebar, sidebar on the right, horizontal tabs, touch density, customize mode, and themes.
 
 ### Custom changes (not in Firefox 155/156)
 
-These are deliberate differences from the original look:
+These are deliberate differences from the original look. Compact density keeps the original 155 look.
 
-- **6px gaps instead of 4px.** The gap around the window edge and below the toolbar now matches the gap between the vertical tabs and the page, which was already 6px (1px + the 4px resize handle + 1px). To get 155's 4px gaps back, change `--nova-islands-gap: 6px;` to `4px` near the top of `nova-islands.css`.
-- **Split view borders.** Firefox 157 draws the border of the unfocused page as an outline, so the page no longer shifts by 1px when you click between the two pages. The mod keeps this on 157+ and also applies it on 156, in the same colour as the other borders (157's own colour is translucent and nearly invisible on dark pages).
-- **Split view layout.** The two pages fill exactly the area of a single page: Firefox 155 added an extra gap on their outer side. In a normal window both pages are rounded and bordered on every side. Maximized, like a single page, they keep borders and rounded corners only on their inner edges, not where they meet the screen.
+- **Gaps measured from what you see.** The gap is 4px at the window edge and below the toolbar, and 6px between the sidebar (vertical tabs, the sidebar icons with horizontal tabs, or an open panel such as bookmarks) and the page, and between the two pages of a split view. Firefox 155 drew some borders and focus outlines outside their blocks, so those gaps looked thinner.
+- **Split view borders, Firefox 158 style on every version.** Both pages keep a 1px border, so a page never changes size when you click between them; the focused page's border turns the focus colour, with a 1px focus outline outside it. Borders use the same colour as the other islands (Firefox's own is translucent and nearly invisible on dark pages). The focused page moves by 1px when focus changes, to keep the gaps exact.
+- **Split view layout.** The two pages fill the area of a single page (155 added an extra gap on their outer side). In a normal window both pages are rounded and bordered on every side. Maximized, like a single page, they keep borders and rounded corners only on their inner edges, not where they meet the screen. In fullscreen they have no rounded corners.
 
 Colours are Firefox 155/156's: solid toolbar and sidebar blocks. Firefox 157 made those translucent and moved the toolbar gradient to the window background, so the CSS pins the older colours for the default theme. Installed themes keep their own colours.
 
@@ -133,6 +133,8 @@ user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 ## Compatibility
 
 Tested on MacOS Sequoia and Windows 11
+
+Last checked on macOS with Firefox 156, 157, 158 (beta) and 159 (Nightly): vertical and horizontal tabs, normal, compact and touch density, split view, sidebar panels, docked DevTools, maximized and fullscreen windows.
 
 Firefox changes its interface code often, so a future release can break this. If it does, please open an issue.
 

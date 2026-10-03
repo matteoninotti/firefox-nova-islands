@@ -24,15 +24,15 @@
  *   - compact density: 2px gaps, only the inner corner rounded
  *
  * Deliberate differences from Firefox 155/156:
- *   - Gaps are 6px instead of 4px, so the window edge and the toolbar gap
- *     match the gap between the sidebar and the page (1px + 4px splitter +
- *     1px). Set --nova-islands-gap to 4px for 155's gaps.
- *   - Split view uses Firefox 157's outline on the unfocused page, also on 156
- *     (156 used a border, which shifted the page by 1px when focus moved
- *     between panels), drawn in the same colour as the other island borders.
- *   - Split pages line up with a single page: 155's extra inset on their
- *     outer side is gone. Maximized, they keep borders and rounded corners
- *     only on their inner edges, like a single page.
+ *   - Split view uses Firefox 158's borders on every version: both pages keep
+ *     a 1px border (no resize when focus moves); the focused one turns the
+ *     focus colour, with a 1px focus outline outside. Borders use the islands'
+ *     colour. Compact density keeps 155's split view borders.
+ *   - Split view gaps are measured from the pages' visible edges: 4px to
+ *     the window edge and the toolbar, 6px to the sidebar and between the
+ *     pages, like a single page (155 inset split pages further). Maximized,
+ *     they keep borders and rounded corners only on their inner edges.
+ *   - Fullscreen: split pages have no rounded corners.
  *
  * Everything is inside -moz-pref("browser.nova.enabled"): it does nothing
  * unless Nova is enabled.
@@ -48,7 +48,7 @@
   :root {
     /* Firefox 155-156 call the radius --chrome-block-radius, 157+ calls it
      * --window-border-radius; both are set per platform by Firefox itself. */
-    --nova-islands-gap: 6px;
+    --nova-islands-gap: 4px;
     --nova-islands-radius: var(--chrome-block-radius, var(--window-border-radius, 10px));
     --nova-islands-separator: var(--chrome-content-separator-color);
     /* Fill of the toolbar/sidebar blocks, and of the window behind the gaps. */
@@ -307,109 +307,181 @@
 
   /* ---- Split view ------------------------------------------------------ */
 
-  /* 155 inset the split panels by another gap on their outer side, so split
-   * pages sat further from the window edge than a single page (and kept that
-   * inset when maximized). Custom: #browser's padding is the only outer gap,
-   * so split pages line up with a single page. */
-  @media -moz-pref("sidebar.revamp") {
-    #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active {
-      margin: 0 !important;
-    }
-  }
-
-  #tabbrowser-tabpanels[splitview] .split-view-panel[column="0"] {
-    margin-inline-end: 0 !important;
-
-    :root[uidensity="compact"] & {
-      margin-inline-start: 2px !important;
-    }
-
-    :root[uidensity="compact"] &.deck-selected {
-      margin-inline-start: 4px !important;
-    }
-
-    #tabbrowser-tabbox:is([sidebar-shown], [sidebar-panel-open]) & {
-      margin-inline-start: 0 !important;
-    }
-
-    :root[uidensity="compact"] #tabbrowser-tabbox:is([sidebar-shown], [sidebar-panel-open]) & {
-      margin-inline-start: 0 !important;
-    }
-
-    :root[uidensity="compact"] #tabbrowser-tabbox:is([sidebar-shown], [sidebar-panel-open]) &.deck-selected {
-      margin-inline-start: 2px !important;
-    }
-  }
-
-  #tabbrowser-tabpanels[splitview] .split-view-panel[column="1"] {
-    margin-inline-start: 0 !important;
-
-    :root[uidensity="compact"] & {
-      margin-inline-end: 2px !important;
-    }
-
-    :root[uidensity="compact"] &.deck-selected {
-      margin-inline-end: 4px !important;
-    }
-  }
-
   #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
     border-radius: var(--nova-islands-radius) !important;
   }
 
-  /* Custom (Firefox 157's fix, also applied on 156): the unfocused panel gets
-   * an outline instead of 156's border, so the page no longer shifts by 1px
-   * when focus moves between panels. Drawn in the islands' border colour
-   * instead of 157's translucent one, and just outside the page like the
-   * other borders: inside it, the page content paints over it. The panel
-   * clips its overflow, so let it paint 1px past its edge. */
-  #tabbrowser-tabpanels[splitview] .split-view-panel:not(.deck-selected) {
-    overflow-clip-margin: 1px !important;
+  /* Firefox 158+ also rounds (and clips) the panel around the page, which
+   * would round corners the rules below square off. The page's own rounding
+   * is enough, as in 157. */
+  #tabbrowser-tabpanels[splitview] .split-view-panel {
+    border-radius: 0 !important;
+  }
+
+  /* Custom: Firefox 158's split view borders, on every version. Both pages
+   * keep a real 1px border, so a page's size doesn't change when focus moves
+   * (156 bordered only the unfocused page; 157's outline replacement is
+   * covered by the page content and never shows). The focused page's border
+   * takes the focus colour, plus a 1px focus outline outside it. The border
+   * uses the islands' colour instead of Firefox's translucent one. */
+  :root:not([uidensity="compact"]) #tabbrowser-tabpanels[splitview] .split-view-panel {
+    overflow-clip-margin: 2px !important;
 
     & > .browserContainer {
-      border: none !important;
-      outline: 1px solid var(--nova-islands-separator) !important;
+      border: 1px solid var(--nova-islands-separator) !important;
+      outline: none !important;
+    }
+
+    &.deck-selected > .browserContainer {
+      border-color: var(--focus-outline-color) !important;
+      outline: 1px solid var(--focus-outline-color) !important;
       outline-offset: 0 !important;
     }
   }
 
-  /* Custom: maximized (or fullscreen), split pages keep borders and rounding
-   * only on their inner edges, like a single page. Outlines sit outside the
-   * page, so on the sides that meet the screen they fall off-screen. */
-  :root:is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
+  /* Compact density: Firefox 155/156's split view borders. The unfocused page
+   * has a 1px border, the focused one a 2px focus outline outside it. */
+  :root[uidensity="compact"] #tabbrowser-tabpanels[splitview] .split-view-panel {
+    overflow-clip-margin: 2px !important;
+
+    & > .browserContainer {
+      border: 1px solid var(--nova-islands-separator) !important;
+      outline: none !important;
+    }
+
+    &.deck-selected > .browserContainer {
+      border: none !important;
+      outline: 2px solid var(--focus-outline-color) !important;
+      outline-offset: 0 !important;
+    }
+  }
+
+  /* Custom: gaps are measured from the pages' visible edges. The focused
+   * page's 1px focus outline sits outside it, so it gets a 1px margin: the
+   * gaps then match a single page's, 4px to the window edge and the toolbar,
+   * 6px to the sidebar and between the two pages. The focused page moves by
+   * 1px when focus changes. Compact density keeps 155's margins (below). */
+  :root:not([uidensity="compact"]) #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active {
+    margin: 0 !important;
+
+    &.deck-selected {
+      margin: 1px !important;
+    }
+  }
+
+  /* The splitter between the pages: 1px + 4px + 1px, like the sidebar's.
+   * Firefox widens the focused side; the margins above do that. */
+  :root:not([uidensity="compact"]) #tabbrowser-tabpanels[splitview] .split-view-splitter {
+    margin-inline: 1px !important;
+  }
+
+  /* Maximized or fullscreen: no margin and no border on the sides that meet
+   * the screen, so the focus outline there falls off-screen. */
+  :root:not([uidensity="compact"]):is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active {
+    margin-block-end: 0 !important;
+
+    & > .browserContainer {
+      border-block-end: none !important;
+    }
+  }
+
+  /* Fullscreen with the toolbars slid away: the top edge meets the screen. */
+  :root:not([uidensity="compact"])[fullscreenNavToolboxHidden] #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active {
+    margin-block-start: 0 !important;
+
+    & > .browserContainer {
+      border-block-start: none !important;
+    }
+  }
+
+  :root:not([uidensity="compact"]):is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabbox:not([sidebar-shown], [sidebar-panel-open]) #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active[column="0"],
+  :root:not([uidensity="compact"]):is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabbox[sidebar-positionend] #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active[column="0"] {
+    margin-inline-start: 0 !important;
+
+    & > .browserContainer {
+      border-inline-start: none !important;
+    }
+  }
+
+  :root:not([uidensity="compact"]):is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabbox:not([sidebar-positionend], [ai-window-open]) #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active[column="1"] {
+    margin-inline-end: 0 !important;
+
+    & > .browserContainer {
+      border-inline-end: none !important;
+    }
+  }
+
+  /* Compact density: Firefox 155's splitter and margins, with room for the
+   * 2px focus outline. */
+  :root[uidensity="compact"] #tabbrowser-tabpanels[splitview] .split-view-splitter {
+    margin-inline: 1px !important;
+  }
+
+  :root[uidensity="compact"][splitview-selected-column="0"] #tabbrowser-tabpanels[splitview] .split-view-splitter {
+    margin-inline-start: 3px !important;
+  }
+
+  :root[uidensity="compact"][splitview-selected-column="1"] #tabbrowser-tabpanels[splitview] .split-view-splitter {
+    margin-inline-end: 3px !important;
+  }
+
+  :root[uidensity="compact"] #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active {
+    margin: 0 !important;
+    margin-block-end: 2px !important;
+
+    &.deck-selected {
+      margin-block-start: 2px !important;
+      margin-block-end: 4px !important;
+    }
+
+    &[column="0"] {
+      margin-inline-start: 2px !important;
+    }
+
+    &[column="0"].deck-selected {
+      margin-inline-start: 4px !important;
+    }
+
+    &[column="1"] {
+      margin-inline-end: 2px !important;
+    }
+
+    &[column="1"].deck-selected {
+      margin-inline-end: 4px !important;
+    }
+
+    #tabbrowser-tabbox:is([sidebar-shown], [sidebar-panel-open]) &[column="0"] {
+      margin-inline-start: 0 !important;
+    }
+
+    #tabbrowser-tabbox:is([sidebar-shown], [sidebar-panel-open]) &[column="0"].deck-selected {
+      margin-inline-start: 2px !important;
+    }
+  }
+
+  /* Custom: maximized (or fullscreen), split pages keep rounded corners only
+   * on their inner edges, like a single page (maximized compact density keeps
+   * 155's corners). */
+  :root:is([sizemode="maximized"]:not([uidensity="compact"]), [inFullscreen]) #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
     border-end-start-radius: 0 !important;
     border-end-end-radius: 0 !important;
   }
 
   /* Column 0: start edge meets the screen unless a sidebar sits there. */
-  :root:is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabbox:not([sidebar-shown], [sidebar-panel-open]) #tabbrowser-tabpanels[splitview] .split-view-panel[column="0"] > .browserContainer,
-  :root:is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabbox[sidebar-positionend] #tabbrowser-tabpanels[splitview] .split-view-panel[column="0"] > .browserContainer {
+  :root:is([sizemode="maximized"]:not([uidensity="compact"]), [inFullscreen]) #tabbrowser-tabbox:not([sidebar-shown], [sidebar-panel-open]) #tabbrowser-tabpanels[splitview] .split-view-panel[column="0"] > .browserContainer,
+  :root:is([sizemode="maximized"]:not([uidensity="compact"]), [inFullscreen]) #tabbrowser-tabbox[sidebar-positionend] #tabbrowser-tabpanels[splitview] .split-view-panel[column="0"] > .browserContainer {
     border-start-start-radius: 0 !important;
   }
 
   /* Column 1: end edge meets the screen unless a sidebar sits there. */
-  :root:is([sizemode="maximized"], [inFullscreen]) #tabbrowser-tabbox:not([sidebar-positionend], [ai-window-open]) #tabbrowser-tabpanels[splitview] .split-view-panel[column="1"] > .browserContainer {
+  :root:is([sizemode="maximized"]:not([uidensity="compact"]), [inFullscreen]) #tabbrowser-tabbox:not([sidebar-positionend], [ai-window-open]) #tabbrowser-tabpanels[splitview] .split-view-panel[column="1"] > .browserContainer {
     border-start-end-radius: 0 !important;
   }
 
-  /* Fullscreen with the toolbars slid away: the top edge meets the screen. */
-  :root[fullscreenNavToolboxHidden] #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
+  /* Custom: fullscreen squares the top corners too. */
+  :root[inFullscreen] #tabbrowser-tabpanels[splitview] .split-view-panel > .browserContainer {
     border-start-start-radius: 0 !important;
     border-start-end-radius: 0 !important;
-  }
-
-  /* #browser already supplies the gap above and below the panels. */
-  #tabbrowser-tabpanels[splitview] .split-view-panel.split-view-panel-active {
-    margin-block: 0 !important;
-
-    :root[uidensity="compact"] & {
-      margin-block-end: 2px !important;
-    }
-
-    :root[uidensity="compact"] &.deck-selected {
-      margin-block-start: 2px !important;
-      margin-block-end: 4px !important;
-    }
   }
 
   /* A page in fullscreen (e.g. a video) fills the screen. */
@@ -418,6 +490,8 @@
 
     & > .browserContainer {
       border-radius: 0 !important;
+      border: none !important;
+      outline: none !important;
     }
   }
 
@@ -468,6 +542,12 @@
     padding-block-end: 0 !important;
     border-inline-start: none !important;
     outline: 0.5px solid var(--sidebar-border-color) !important;
+
+    /* Custom: draw it over the border, not outside it, so the gaps around
+     * the panel measure 4px/6px like the other blocks. */
+    :root:not([uidensity="compact"]) & {
+      outline-offset: -0.5px !important;
+    }
   }
 
   #sidebar,
@@ -499,14 +579,30 @@
     }
   }
 
-  /* Leave room for the selected split-view panel's 2px focus outline. */
-  :root[splitview-selected-column="0"] #sidebar-box:not([sidebar-positionend]) + #sidebar-splitter,
-  :root[splitview-selected-column="0"] #sidebar-container:not([sidebar-panel-open]):not([sidebar-positionend]) + #sidebar-launcher-splitter {
+  /* Custom: with horizontal tabs Firefox hides that splitter, which leaves
+   * only #browser's 4px gap; add 2px so sidebar-main and the page sit 6px
+   * apart, as with vertical tabs. */
+  @media not -moz-pref("sidebar.verticalTabs") {
+    :root:not([uidensity="compact"]) #sidebar-container:not([sidebar-panel-open]) {
+      &:not([sidebar-positionend]) {
+        margin-inline-end: 2px !important;
+      }
+
+      &[sidebar-positionend] {
+        margin-inline-start: 2px !important;
+      }
+    }
+  }
+
+  /* Compact density: leave room for the selected split-view panel's 2px
+   * focus outline (other densities use the split panel margins). */
+  :root[uidensity="compact"][splitview-selected-column="0"] #sidebar-box:not([sidebar-positionend]) + #sidebar-splitter,
+  :root[uidensity="compact"][splitview-selected-column="0"] #sidebar-container:not([sidebar-panel-open]):not([sidebar-positionend]) + #sidebar-launcher-splitter {
     margin-inline-end: calc(-1 * var(--nova-islands-gap) + 3px) !important;
   }
 
-  :root[splitview-selected-column="1"] #sidebar-box[sidebar-positionend] + #sidebar-splitter,
-  :root[splitview-selected-column="1"] #sidebar-container[sidebar-positionend]:not([sidebar-panel-open]) + #sidebar-launcher-splitter {
+  :root[uidensity="compact"][splitview-selected-column="1"] #sidebar-box[sidebar-positionend] + #sidebar-splitter,
+  :root[uidensity="compact"][splitview-selected-column="1"] #sidebar-container[sidebar-positionend]:not([sidebar-panel-open]) + #sidebar-launcher-splitter {
     margin-inline-start: calc(-1 * var(--nova-islands-gap) + 3px) !important;
   }
 
